@@ -36,9 +36,14 @@ Arm::Arm()
   test_goal_pose.position.y = 0.51;
   test_goal_pose.position.z = 0.50;
 
-
+  std::vector<double> test_goal_joints1 =
+    {0.301032, 0.428689, 1.150879, -2.100787, 2.670032, 0.879070, 0.00};
+  std::vector<double> test_goal_joints2 =
+    {0.301032, 0.428689, 1.150879, -2.100787, 2.670032, 0.879070, 1.00};
   //Execute Motion
-  MoveTargetPose(test_goal_pose, true);
+  // MoveTargetPose(test_goal_pose, true);
+  // MoveTargetJoint(test_goal_joints1, true);
+  // MoveTargetJoint(test_goal_joints2, true);
 
 
 
@@ -88,7 +93,8 @@ bool Arm::ValidateTargetPose(geometry_msgs::Pose pose) {
 }
 
 void Arm::MoveTargetPose(geometry_msgs::Pose target_pose, bool execute) {
-  ROS_INFO("Moving to Target Pose Point(%f,%f,%f)", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+  ROS_INFO("Moving to Target Pose Point");
+  PrintCurrentPose(target_pose);
 
   if (!ValidateTargetPose(target_pose)) {
     ROS_WARN("Pose Target Exceeds Bounds");
@@ -102,6 +108,19 @@ void Arm::MoveTargetPose(geometry_msgs::Pose target_pose, bool execute) {
     ROS_INFO("Plan unsuccesful...");
     return;
   }
+
+  if (execute) {
+    ROS_INFO("Attempting to execute ...");
+    move_group_.execute(plan);
+    ROS_INFO("Finished Executing");
+  }
+}
+
+void Arm::MoveTargetJoint(std::vector<double> target_joint, bool execute) {
+  ROS_INFO("Moving to Target Joint Points:");
+  PrintCurrentJointValues(target_joint);
+  move_group_.setJointValueTarget(target_joint);
+  success_ = (move_group_.plan(plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
   if (execute) {
     ROS_INFO("Attempting to execute ...");

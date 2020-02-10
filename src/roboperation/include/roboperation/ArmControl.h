@@ -46,6 +46,7 @@ public:
   bool ValidateTargetPose(geometry_msgs::Pose pose);
   void MoveTargetPose(geometry_msgs::Pose target_pose, bool execute);
   void MoveTargetPoseCon(geometry_msgs::Pose target_pose, bool execute, double plan_time);
+  void MoveTargetJoint(std::vector<double> target_joint, bool execute);
 };
 }
 
