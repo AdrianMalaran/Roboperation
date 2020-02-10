@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="robot_ip" />
+  <arg name="load_gripper" default="true" />
+  <arg name="launch_rviz" default="true" />
+
+  <include file="$(find franka_control)/launch/franka_control.launch" >
+    <arg name="robot_ip" value="$(arg robot_ip)" />
+    <arg name="load_gripper" value="$(arg load_gripper)" />
+  </include>
+
+  <arg name="node_start_delay" default="3.0" />
+
+  <node pkg="rosservice" type="rosservice" name="joint_stiffness" args="call --wait /franka_control/set_joint_impedance 'joint_stiffness: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0]'"/>
+
+  <node pkg="rosservice" type="rosservice" name="full_collision_thres" args="call --wait /franka_control/set_full_collision_behavior '
+ {lower_torque_thresholds_acceleration: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0],
+ upper_torque_thresholds_acceleration: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0],
+ lower_torque_thresholds_nominal: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0],
+ upper_torque_thresholds_nominal: [20.0, 20.0, 18.0, 18.0, 16.0, 14.0, 12.0],
+ lower_force_thresholds_acceleration: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0],
+ upper_force_thresholds_acceleration: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0],
+ lower_force_thresholds_nominal: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0],
+ upper_force_thresholds_nominal: [20.0, 20.0, 20.0, 25.0, 25.0, 25.0]}'" />
+
+  <node pkg="rosservice" type="rosservice" name="force_torque_collision_thres" args="call --wait /franka_control/set_force_torque_collision_behavior '
+{lower_torque_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+upper_torque_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+lower_force_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+upper_force_thresholds_nominal: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0]}'" />
+
+
+  <include file="$(find panda_moveit_config)/launch/panda_moveit.launch">
+    <arg name="load_gripper" value="$(arg load_gripper)" />
+  </include>
+
+  <include file="$(find panda_moveit_config)/launch/moveit_rviz.launch" if="$(arg launch_rviz)" />
+</launch>
