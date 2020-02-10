@@ -1,0 +1,7 @@
+<!--@file arm_control.launch -->
+<launch>
+  <!-- <rosparam file="$(find roboperation)/config/circuit_race.yaml"/> -->
+
+  <node pkg="roboperation" name="roboperation" type="roboperation" output="screen">
+  </node>
+</launch>
