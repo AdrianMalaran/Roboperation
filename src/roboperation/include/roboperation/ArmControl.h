@@ -22,6 +22,8 @@ private:
   ros::Subscriber string_subscriber_;
   ros::Subscriber input_arm_state_;
 
+  ros::Publisher robot_arm_error_publisher_;
+
   geometry_msgs::Pose home_pose_;
   std::vector<double> home_joint_;
   moveit_msgs::OrientationConstraint ocm_;
@@ -35,18 +37,21 @@ private:
   bool orient_constraint_ = false;
 
   moveit::planning_interface::MoveGroupInterface move_group_; //move_group object storing joint and link info
-  moveit::planning_interface::MoveGroupInterface::Plan plan; //plan for motion planning
+  moveit::planning_interface::MoveGroupInterface::Plan plan_; //plan for motion planning
 public:
   Arm ();
   void PrintCurrentPose(geometry_msgs::Pose pose_values);
   void PrintCurrentJointValues(std::vector<double> joint_values);
   void StringMessageCallback(const std_msgs::String::ConstPtr &msg);
   void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
-  void MoveArm();
+  void setMaxVelScalingFactor(double velocity_factor);
   bool ValidateTargetPose(geometry_msgs::Pose pose);
   void MoveTargetPose(geometry_msgs::Pose target_pose, bool execute);
   void MoveTargetPoseCon(geometry_msgs::Pose target_pose, bool execute, double plan_time);
   void MoveTargetJoint(std::vector<double> target_joint, bool execute);
+
+  void moveCartesianPath(double jump_threshold = 0.0, double eef_step = 0.01, bool step = true, bool execute = false);
+  void executeCartesianPath(std::vector<geometry_msgs::Pose> waypoints);
 };
 }
 
