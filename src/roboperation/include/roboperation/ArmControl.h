@@ -8,6 +8,7 @@
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/robot_trajectory/robot_trajectory.h>
 
 #include "ros/ros.h"
 
@@ -27,6 +28,8 @@ private:
   geometry_msgs::Pose home_pose_;
   std::vector<double> home_joint_;
   moveit_msgs::OrientationConstraint ocm_;
+
+  moveit_msgs::RobotTrajectory trajectory;
 
   // moveit::planning_interface::MoveGroupInterface move_group_; //move_group object storing joint and link info
 
