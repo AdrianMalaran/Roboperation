@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   moveit_core
+  moveit_visual_tools
   moveit_ros_planning
   moveit_ros_planning_interface
   rosbag
@@ -23,6 +24,7 @@ catkin_package(
     std_msgs
     geometry_msgs
     moveit_core
+    moveit_visual_tools
     moveit_ros_planning_interface
   DEPENDS system_lib
 )

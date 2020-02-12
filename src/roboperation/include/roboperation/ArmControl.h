@@ -9,10 +9,12 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
+#include <moveit_visual_tools/moveit_visual_tools.h>
 
 #include "ros/ros.h"
 
 using namespace std;
+namespace rvt = rviz_visual_tools;
 
 namespace panda {
 
@@ -40,21 +42,29 @@ private:
   bool orient_constraint_ = false;
 
   moveit::planning_interface::MoveGroupInterface move_group_; //move_group object storing joint and link info
+  const robot_state::JointModelGroup *joint_model_group_;     //pointer to joint_model_group
+  moveit_visual_tools::MoveItVisualTools visual_tools; //visual tools to use the GUI in rviz
   moveit::planning_interface::MoveGroupInterface::Plan plan_; //plan for motion planning
 public:
   Arm ();
-  void PrintCurrentPose(geometry_msgs::Pose pose_values);
-  void PrintCurrentJointValues(std::vector<double> joint_values);
+  void PrintPose(geometry_msgs::Pose pose_values);
+  void PrintJointValues(std::vector<double> joint_values);
   void StringMessageCallback(const std_msgs::String::ConstPtr &msg);
   void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
   void setMaxVelScalingFactor(double velocity_factor);
   bool ValidateTargetPose(geometry_msgs::Pose pose);
+
+  void VisualizeTrajectory();
   void MoveTargetPose(geometry_msgs::Pose target_pose, bool execute);
   void MoveTargetPoseCon(geometry_msgs::Pose target_pose, bool execute, double plan_time);
   void MoveTargetJoint(std::vector<double> target_joint, bool execute);
 
+  void MoveArmDirectionX(double distance);
+  void MoveArmDirectionY(double distance);
+  void MoveArmDirectionZ(double distance);
+
   void moveCartesianPath(double jump_threshold = 0.0, double eef_step = 0.01, bool step = true, bool execute = false);
-  void executeCartesianPath(std::vector<geometry_msgs::Pose> waypoints);
+  void executeCartesianPath(std::vector<geometry_msgs::Pose> waypoints, bool execute);
 };
 }
 
