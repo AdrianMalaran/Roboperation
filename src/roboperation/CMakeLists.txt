@@ -13,7 +13,21 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning
   moveit_ros_planning_interface
   rosbag
+  message_generation
 )
+
+add_message_files(
+  FILES
+  ArmStatePose.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
+#generate_messages()
 
 catkin_package(
   INCLUDE_DIRS include
@@ -26,6 +40,7 @@ catkin_package(
     moveit_core
     moveit_visual_tools
     moveit_ros_planning_interface
+    message_runtime
   DEPENDS system_lib
 )
 
@@ -37,6 +52,7 @@ include_directories(
  include
   ${catkin_INCLUDE_DIRS}
 )
+
 
 add_library(arm_control
   src/ArmControl.cpp

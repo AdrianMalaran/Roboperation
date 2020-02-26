@@ -1,5 +1,22 @@
 #include "roboperation/ArmControl.h"
 
+/*
+
+Plan For Today:
+[]  Make a callback that is responsive to moving
+[x] Make the camera work
+[] Use the fake controller to see how it works out on big laptop so you can code offline
+[] Have a collision out-of-bounds
+
+-// roslaunch panda_moveit_config demo.launch
+
+Questions to Ask:
+- Is there a way to interrupt the current trajectory plan to start a new one (?)
+- How do i interface with a different controller (JointGroupPositionController) to try to get it to be more real time
+- Would I be able to come in later @ night possibly to robohub ?
+- What does playing around with the joint stiffness do ??
+*/
+
 namespace panda {
 
 Arm::Arm()
@@ -16,6 +33,7 @@ Arm::Arm()
   // Subscribers
   input_arm_state_ = nh_.subscribe("input_state", 1, &Arm::PoseListenerCallback, this);
   string_subscriber_ = nh_.subscribe("chatter", 1, &Arm::StringMessageCallback, this);
+  arm_control_input_ = nh_.subscribe("arm_control_input", 1, &Arm::MoveArmRealTimeCallback, this);
 
   // Publishers
   robot_arm_error_publisher_ = nh_.advertise<std_msgs::String>("/error", 1, false);
@@ -73,7 +91,7 @@ Arm::Arm()
   }
 
   //Execute Motion
-  // MoveTargetPose(test_goal_pose, true);
+  MoveTargetPose(test_goal_pose, true);
   // MoveTargetJoint(test_goal_joints1, true);
   // MoveTargetJoint(home_joint_values, true);
   executeCartesianPath(test_waypoints, true);
@@ -118,6 +136,13 @@ void Arm::PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg) {
   ROS_INFO("Received Desired Pos(%.2f, %.2f, %.2f) Angle(%.2f, %.2f, %.2f)",
     msg->position.x, msg->position.y, msg->position.z,
     msg->orientation.x, msg->orientation.y, msg->orientation.z);
+
+
+}
+
+void Arm::MoveArmRealTimeCallback(const roboperation::ArmStatePose::ConstPtr &msg) {
+  ROS_INFO("Got Arm State Pose");
+  // TODO: Gotta have a if arm state is there then
 }
 
 void Arm::setMaxVelScalingFactor(double velocity_factor) {

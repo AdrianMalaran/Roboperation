@@ -5,6 +5,7 @@
 #include <sstream>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Pose.h>
+#include <roboperation/ArmStatePose.h>
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -24,6 +25,7 @@ private:
   int state; // ACTIVE, IDLE
   ros::Subscriber string_subscriber_;
   ros::Subscriber input_arm_state_;
+  ros::Subscriber arm_control_input_;
 
   ros::Publisher robot_arm_error_publisher_;
 
@@ -53,6 +55,8 @@ public:
   void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
   void setMaxVelScalingFactor(double velocity_factor);
   bool ValidateTargetPose(geometry_msgs::Pose pose);
+
+  void MoveArmRealTimeCallback(const roboperation::ArmStatePose::ConstPtr &msg);
 
   void VisualizeTrajectory();
   void MoveTargetPose(geometry_msgs::Pose target_pose, bool execute);
