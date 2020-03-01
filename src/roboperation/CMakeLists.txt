@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning_interface
   rosbag
   message_generation
+  eigen_conversions
 )
 
 add_message_files(

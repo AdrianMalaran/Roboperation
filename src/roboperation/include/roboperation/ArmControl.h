@@ -5,7 +5,7 @@
 #include <sstream>
 #include <std_msgs/String.h>
 #include <geometry_msgs/Pose.h>
-#include <roboperation/ArmStatePose.h>
+#include "roboperation/ArmStatePose.h"
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -14,8 +14,27 @@
 
 #include "ros/ros.h"
 
+/*
+How to get Serial Communication from Arduino working:
+- Modify rosserial_arduino/src/ArduinoHardware.h to include these lines
+(https://answers.ros.org/question/264764/rosserial-arduino-due-sync-issues/)
+
+
+# ROS TO ARDUINO
+# terminal 1:$ roscore
+# $ sudo chmod a+rw /dev/ttyACM0
+# $ sudo usermod -a -G dialout amalaran
+# NOTE: MAKE SURE THE SERIAL PORT WINDOW ON ARDUINO IS CLOSED
+# terminal 2:$ rosrun rosserial_python serial_node.py _port:=/dev/ttyACM0 _baud:=9600
+# terminal 3:$ rostopic echo chatter
+# terminal 4:$ rostopic echo arm_control_input
+
+*/
+
 using namespace std;
 namespace rvt = rviz_visual_tools;
+
+constexpr int ACTIVE_STATE = 1;
 
 namespace panda {
 
@@ -49,6 +68,7 @@ private:
   moveit::planning_interface::MoveGroupInterface::Plan plan_; //plan for motion planning
 public:
   Arm ();
+  void Loop();
   void PrintPose(geometry_msgs::Pose pose_values);
   void PrintJointValues(std::vector<double> joint_values);
   void StringMessageCallback(const std_msgs::String::ConstPtr &msg);
@@ -69,6 +89,7 @@ public:
 
   void moveCartesianPath(double jump_threshold = 0.0, double eef_step = 0.01, bool step = true, bool execute = false);
   void executeCartesianPath(std::vector<geometry_msgs::Pose> waypoints, bool execute);
+  void TestMovements();
 };
 }
 
