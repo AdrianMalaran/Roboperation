@@ -35,7 +35,7 @@ Arm::Arm()
     arm_control_input_ = nh_.subscribe("arm_control_input", 1, &Arm::MoveArmRealTimeCallback, this);
 
     // Publishers
-    robot_arm_error_publisher_ = nh_.advertise<std_msgs::String>("/error", 1, false);
+    robot_arm_error_publisher_ = nh_.advertise<std_msgs::String>("/error", 1, EXECUTE_MOTION);
 
     // moveit::planning_interface::MoveGroupInterface move_group_(planning_group_); //move_group_ object storing joint and link info
 
@@ -60,6 +60,7 @@ void Arm::Loop() {
         // Print Current Position
         // PrintPose(move_group_.getCurrentPose().pose);
         // PrintJointValues(move_group_.getCurrentJointValues());
+        ExecuteBufferedActions();
         ROS_INFO("Waiting...");
         ros::Duration(0.5).sleep();
     }
@@ -87,6 +88,16 @@ void Arm::PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg) {
         msg->orientation.x, msg->orientation.y, msg->orientation.z);
 }
 
+void Arm::ExecuteBufferedActions() {
+  ROS_INFO("Executing next Buffered Pose");
+  // If the action buffer is non-empty, execute the next action
+  if (!action_buffer_.empty()) {
+    geometry_msgs::Pose next_pose;
+    next_pose = action_buffer_.front().desired_pose;
+    MoveTargetPose(next_pose, EXECUTE_MOTION);
+  }
+}
+
 void Arm::MoveArmRealTimeCallback(const roboperation::ArmStatePose::ConstPtr &msg) {
     ROS_INFO("Got Arm State Pose");
 
@@ -94,9 +105,13 @@ void Arm::MoveArmRealTimeCallback(const roboperation::ArmStatePose::ConstPtr &ms
     target_pose.position = msg->desired_pose.position;
     target_pose.orientation = msg->desired_pose.orientation;
     // TODO: Gotta have a if arm state is there then
-    if (msg->active_state == ACTIVE_STATE) {
-      ROS_WARN("  Active button pressed - Moving Robot Arm");
-      MoveTargetPose(target_pose, false);
+    if (msg->active_state == EXECUTE_MOTION) {
+      ROS_WARN("  Active button pressed - Adding motion to buffer");
+      roboperation::ArmStatePose target_state;
+      target_state.desired_pose = target_pose;
+      action_buffer_.push(target_state);
+      ExecuteBufferedActions();
+      // MoveTargetPose(target_pose, EXECUTE_MOTION);
     } else {
       ROS_INFO("  Button not pressed");
     }
@@ -117,6 +132,11 @@ bool Arm::ValidateTargetPose(geometry_msgs::Pose pose) {
       bool y_inbound = (pose.position.y >= 0 && pose.position.y <= 0.60);
       bool z_inbound = (pose.position.z >= 0.3 && pose.position.z <= 1.00);
 
+      // Validate the cartesian path to be travelled ensure its lower than a specific threshold
+      double relative_distance = 0.0;
+      if (relative_distance <= small_distance_threshold) {
+        // TODO: Todo
+      }
       return x_inbound && y_inbound && z_inbound;
 }
 
@@ -267,6 +287,15 @@ void Arm::MoveTargetPoseCon(geometry_msgs::Pose target_pose, bool execute, doubl
             MoveTargetPose(target_pose, execute);
 }
 
+// Libraries
+double Arm::getSquaredEuclideanDistance(geometry_msgs::Pose p1, geometry_msgs::Pose p2) {
+  double distanceSquared = (p1.position.x - p2.position.x) * (p1.position.x - p2.position.x)
+                  + (p1.position.y - p2.position.y) * (p1.position.y - p2.position.y)
+                  + (p1.position.z - p2.position.z) * (p1.position.z - p2.position.z);
+  // distance = sqrt(distance);
+  return distanceSquared;
+}
+
 void Arm::TestMovements() {
       geometry_msgs::Pose test_goal_pose;
       test_goal_pose.position = home_pose_.position;
@@ -306,7 +335,7 @@ void Arm::TestMovements() {
       }
 
       //Execute Motion
-      MoveTargetPose(test_goal_pose, true);
+      // MoveTargetPose(test_goal_pose, true);
       // MoveTargetJoint(test_goal_joints1, true);
       // MoveTargetJoint(home_joint_values, true);
       // executeCartesianPath(test_waypoints, true);
@@ -322,6 +351,15 @@ void Arm::TestMovements() {
       // for (int i = 0; i < 2; i ++) {
           //   MoveArmDirectionZ(-0.02); // 1 cm
       // }
+
+      geometry_msgs::Pose p1;
+      geometry_msgs::Pose p2;
+      p1.position.x = 1.0;
+      p1.position.y = 1.0;
+      p1.position.z = 1.0;
+      // Test Function
+      double dist = getSquaredEuclideanDistance(p1, p2);
+      ROS_INFO("Distance Calculated: %f", dist);
 }
 
 }

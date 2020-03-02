@@ -13,6 +13,8 @@
 #include <moveit_visual_tools/moveit_visual_tools.h>
 
 #include "ros/ros.h"
+#include <math.h>
+#include <queue>
 
 /*
 How to get Serial Communication from Arduino working:
@@ -34,7 +36,11 @@ How to get Serial Communication from Arduino working:
 using namespace std;
 namespace rvt = rviz_visual_tools;
 
-constexpr int ACTIVE_STATE = 1;
+constexpr bool EXECUTE_MOTION = false;
+
+// If the euclidean distance between the current pose and the desired pose
+// is greater than this value, we invalidate it
+constexpr double small_distance_threshold = 10.0;
 
 namespace panda {
 
@@ -66,6 +72,7 @@ private:
   const robot_state::JointModelGroup *joint_model_group_;     //pointer to joint_model_group
   moveit_visual_tools::MoveItVisualTools visual_tools; //visual tools to use the GUI in rviz
   moveit::planning_interface::MoveGroupInterface::Plan plan_; //plan for motion planning
+  queue<roboperation::ArmStatePose> action_buffer_;
 public:
   Arm ();
   void Loop();
@@ -75,6 +82,7 @@ public:
   void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
   void setMaxVelScalingFactor(double velocity_factor);
   bool ValidateTargetPose(geometry_msgs::Pose pose);
+  double getSquaredEuclideanDistance(geometry_msgs::Pose p1, geometry_msgs::Pose p2);
 
   void MoveArmRealTimeCallback(const roboperation::ArmStatePose::ConstPtr &msg);
 
@@ -89,6 +97,7 @@ public:
 
   void moveCartesianPath(double jump_threshold = 0.0, double eef_step = 0.01, bool step = true, bool execute = false);
   void executeCartesianPath(std::vector<geometry_msgs::Pose> waypoints, bool execute);
+  void ExecuteBufferedActions();
   void TestMovements();
 };
 }
