@@ -13,10 +13,10 @@ int main(int argc, char **argv)
   ROS_INFO("Starting Arm...");
   panda::Arm arm;
 
-  while (ros::ok())
-  {
-    ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.1));
-  }
+  // while (ros::ok())
+  // {
+  //   ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.1));
+  // }
 
   // ros::spin();
   return 0;

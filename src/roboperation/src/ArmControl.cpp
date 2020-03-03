@@ -7,13 +7,20 @@ Plan For Today:
 [x] Make the camera work
 [] Use the fake controller to see how it works out on big laptop so you can code offline
 [] Have a collision out-of-bounds
+[] Take a look at how execute works
+[] What does robot.control do ?
 
 -// roslaunch panda_moveit_config demo.launch
+
+
+TODAY [March 3]
+- Play around with what the stiffness controller does (Cartesian Impedance Controller)
+- See if you can constrain the motion path properly
+
 
 Questions to Ask:
 - Is there a way to interrupt the current trajectory plan to start a new one (?)
 - How do i interface with a different controller (JointGroupPositionController) to try to get it to be more real time
-- Would I be able to come in later @ night possibly to robohub ?
 - What does playing around with the joint stiffness do ??
 */
 
@@ -24,56 +31,62 @@ Arm::Arm()
 , visual_tools(move_group_.getLinkNames()[0]) {
     ROS_INFO("Initializing Arm Control.");
 
-    // Robot Initializations
-    // visual_tools.loadRemoteControl();
-    visual_tools.deleteAllMarkers();
-
-
-    // Subscribers
-    input_arm_state_ = nh_.subscribe("input_state", 1, &Arm::PoseListenerCallback, this);
-    string_subscriber_ = nh_.subscribe("chatter", 1, &Arm::StringMessageCallback, this);
-    arm_control_input_ = nh_.subscribe("arm_control_input", 1, &Arm::MoveArmRealTimeCallback, this);
-
-    // Publishers
-    robot_arm_error_publisher_ = nh_.advertise<std_msgs::String>("/error", 1, EXECUTE_MOTION);
-
-    // moveit::planning_interface::MoveGroupInterface move_group_(planning_group_); //move_group_ object storing joint and link info
-
-    static const std::string PLANNING_GROUP = "panda_arm";
-
+    SetPubsAndSubs();
+    Reset();
     // Set the max velocity scaling factor
-    setMaxVelScalingFactor(0.5);
+    setMaxVelScalingFactor(1.0);
 
-    // moveit::planning_interface::MoveGroupInterface move_group("panda_arm");
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-    joint_model_group_ = move_group_.getCurrentState()->getJointModelGroup(planning_group_);
     home_pose_ = move_group_.getCurrentPose().pose;
     home_joint_ = move_group_.getCurrentJointValues();
 
-    // Loop();
+    PrintPose(move_group_.getCurrentPose().pose);
 
-    TestMovements();
+    // TestMovements();
+    Loop();
 }
 
 void Arm::Loop() {
     while (ros::ok()) {
-        // Print Current Position
         // PrintPose(move_group_.getCurrentPose().pose);
         // PrintJointValues(move_group_.getCurrentJointValues());
         ExecuteBufferedActions();
-        ROS_INFO("Waiting...");
-        ros::Duration(0.5).sleep();
+        // MoveTargetPose(most_recent_goal_state_, true);
+        ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.1));
+        ros::Duration(0.0).sleep();
     }
 }
 
+void Arm::SetPubsAndSubs() {
+  // Subscribers
+  input_arm_state_ = nh_.subscribe("input_state", 1, &Arm::PoseListenerCallback, this);
+  string_subscriber_ = nh_.subscribe("chatter", 1, &Arm::StringMessageCallback, this);
+  arm_control_input_ = nh_.subscribe("arm_control_input", 1, &Arm::MoveArmRealTimeCallback, this);
+
+  // Publishers
+  robot_arm_error_publisher_ = nh_.advertise<std_msgs::String>("/error", 1, EXECUTE_MOTION);
+}
+
+void Arm::Reset() {
+  ROS_WARN("Resetting all variables");
+  // Robot Initializations
+  visual_tools.deleteAllMarkers();
+  action_buffer_ = queue<roboperation::ArmStatePose>();
+
+  moveit::planning_interface::PlanningSceneInterface planning_scene_interface; //TODO: Remove if not necessary
+  joint_model_group_ = move_group_.getCurrentState()->getJointModelGroup(planning_group_);
+}
+
 void Arm::PrintPose(geometry_msgs::Pose pose_values) {
-    ROS_INFO("Point: Pos(%.2f, %.2f, %.2f)", pose_values.position.x, pose_values.position.y, pose_values.position.z);
+    ROS_INFO("  Point: Pos(%.2f, %.2f, %.2f)", pose_values.position.x, pose_values.position.y, pose_values.position.z);
+    ROS_INFO("  Orien: Ori(%.4f,%.4f, %.4f, %.4f)", pose_values.orientation.w, pose_values.orientation.x, pose_values.orientation.y, pose_values.orientation.z);
 }
 
 void Arm::PrintJointValues(std::vector<double> joint_values) {
     std::string joints;
+    int current_joint = 0;
     for (double joint : joint_values) {
-        joints += to_string(joint) + ", ";
+        joints += "J_" + to_string(current_joint) + ": " + to_string(joint) + ", ";
+        current_joint += 1;
     }
     ROS_INFO("Joints (%s)", joints.c_str());
 }
@@ -89,12 +102,15 @@ void Arm::PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg) {
 }
 
 void Arm::ExecuteBufferedActions() {
-  ROS_INFO("Executing next Buffered Pose");
   // If the action buffer is non-empty, execute the next action
   if (!action_buffer_.empty()) {
+    ROS_INFO("Executing next buffered pose");
     geometry_msgs::Pose next_pose;
     next_pose = action_buffer_.front().desired_pose;
+    action_buffer_.pop();
     MoveTargetPose(next_pose, EXECUTE_MOTION);
+  } else {
+    ROS_INFO("No goal pose buffered - waiting ...");
   }
 }
 
@@ -105,12 +121,14 @@ void Arm::MoveArmRealTimeCallback(const roboperation::ArmStatePose::ConstPtr &ms
     target_pose.position = msg->desired_pose.position;
     target_pose.orientation = msg->desired_pose.orientation;
     // TODO: Gotta have a if arm state is there then
-    if (msg->active_state == EXECUTE_MOTION) {
-      ROS_WARN("  Active button pressed - Adding motion to buffer");
+    if (EXECUTE_MOTION) {
+      ROS_WARN("  Active - Moving Arm..");
+      PrintPose(target_pose);
       roboperation::ArmStatePose target_state;
       target_state.desired_pose = target_pose;
       action_buffer_.push(target_state);
-      ExecuteBufferedActions();
+      most_recent_goal_state_ = target_pose;
+      // ExecuteBufferedActions();
       // MoveTargetPose(target_pose, EXECUTE_MOTION);
     } else {
       ROS_INFO("  Button not pressed");
@@ -124,13 +142,10 @@ void Arm::setMaxVelScalingFactor(double velocity_factor) {
 }
 
 bool Arm::ValidateTargetPose(geometry_msgs::Pose pose) {
-      // Boundaries
-      // x: [0 - 0.50]
-      // y: [0 - 0.50]
-      // z: [0.30 - 1.0]
-      bool x_inbound = (pose.position.x >= 0 && pose.position.x <= 0.50);
-      bool y_inbound = (pose.position.y >= 0 && pose.position.y <= 0.60);
-      bool z_inbound = (pose.position.z >= 0.3 && pose.position.z <= 1.00);
+
+      bool x_inbound = (pose.position.x >= x_bounds[0] && pose.position.x <= x_bounds[1]);
+      bool y_inbound = (pose.position.y >= y_bounds[0] && pose.position.y <= y_bounds[1]);
+      bool z_inbound = (pose.position.z >= z_bounds[0] && pose.position.z <= z_bounds[1]);
 
       // Validate the cartesian path to be travelled ensure its lower than a specific threshold
       double relative_distance = 0.0;
@@ -140,16 +155,26 @@ bool Arm::ValidateTargetPose(geometry_msgs::Pose pose) {
       return x_inbound && y_inbound && z_inbound;
 }
 
+bool ValidateTrajectory(moveit::planning_interface::MoveGroupInterface::Plan plan) {
+  bool valid_trajectory = true;
+  int size = plan.trajectory_.joint_trajectory.points.size();
+  ROS_INFO("JointTrajectories: %i", size);
+
+  if (plan.trajectory_.joint_trajectory.points.size() > 10) { //TODO: Revise this
+    ROS_WARN("Trajectory Point Size %i", size);
+    valid_trajectory = false;
+  }
+
+  return valid_trajectory;
+}
+
 void Arm::VisualizeTrajectory() {
-      ROS_INFO_NAMED("tutorial", "Visualizing plan 1 as trajectory line");
       Eigen::Isometry3d text_pose = Eigen::Isometry3d::Identity();
       text_pose.translation().z() = 1.75;
-      // visual_tools.publishText(text_pose, "Roboperation Testing", rvt::WHITE, rvt::XLARGE);
-      // visual_tools.publishAxisLabeled(target_pose, "pose1");
       visual_tools.publishText(text_pose, "Pose Goal", rvt::WHITE, rvt::XLARGE);
       visual_tools.publishTrajectoryLine(plan_.trajectory_, joint_model_group_);
       visual_tools.trigger();
-      visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
+      // visual_tools.prompt("Press 'next' in the RvizVisualToolsGui window to continue the demo");
 }
 
 void Arm::MoveTargetPose(geometry_msgs::Pose target_pose, bool execute) {
@@ -157,18 +182,19 @@ void Arm::MoveTargetPose(geometry_msgs::Pose target_pose, bool execute) {
       PrintPose(target_pose);
 
       if (!ValidateTargetPose(target_pose)) {
-            ROS_WARN("Pose Target Exceeds Bounds (%.2f, %.2f, %.2f) - Not executing trajectory",
-            target_pose.position.x, target_pose.position.y, target_pose.position.y);
+            ROS_WARN("Out of Bounds (%.2f, %.2f [], %.2f)",
+            target_pose.position.x, target_pose.position.y, target_pose.position.z);
             return;
       }
 
       move_group_.setPoseTarget(target_pose);
-      // TODO: uncomment
       success_ = (move_group_.plan(plan_) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 
       if (!success_) {
-            ROS_WARN("Plan unsuccesful...");
-            return;
+        ROS_WARN("Plan unsuccesful...");
+        return;
+      } else if (!ValidateTrajectory(plan_)) {
+        ROS_WARN("Invalid Trajectory - It might be too long ?");
       }
 
       VisualizeTrajectory();
@@ -178,6 +204,8 @@ void Arm::MoveTargetPose(geometry_msgs::Pose target_pose, bool execute) {
             move_group_.execute(plan_);
             ROS_INFO("Finished Executing");
       }
+      // Set plan to empty to ensure we don't execute the same plan twice
+      plan_.trajectory_.joint_trajectory.points = {};
 }
 
 void Arm::MoveTargetJoint(std::vector<double> target_joint, bool execute) {
@@ -202,7 +230,6 @@ void Arm::MoveArmDirectionX(double distance) {
       ROS_INFO("Moving Arm %.2f in y direction", distance);
       geometry_msgs::Pose current_pose = move_group_.getCurrentPose().pose;
       geometry_msgs::Pose next_pose = current_pose;
-
       next_pose.position.x += distance;
 
       MoveTargetPose(next_pose, true);
@@ -212,7 +239,6 @@ void Arm::MoveArmDirectionY(double distance) {
       ROS_INFO("Moving Arm %.2f in y direction", distance);
       geometry_msgs::Pose current_pose = move_group_.getCurrentPose().pose;
       geometry_msgs::Pose next_pose = current_pose;
-
       next_pose.position.y += distance;
 
       MoveTargetPose(next_pose, true);
@@ -222,7 +248,6 @@ void Arm::MoveArmDirectionZ(double distance) {
       ROS_INFO("Moving Arm %.2f in z direction", distance);
       geometry_msgs::Pose current_pose = move_group_.getCurrentPose().pose;
       geometry_msgs::Pose next_pose = current_pose;
-
       next_pose.position.z += distance;
 
       MoveTargetPose(next_pose, true);
@@ -252,39 +277,39 @@ void Arm::MoveArmDirectionZ(double distance) {
 // }
 
 void Arm::executeCartesianPath(std::vector<geometry_msgs::Pose> waypoints, bool execute) {
-            double eef_step = 0.01;
-            double jump_threshold = 0.0;
-            move_group_.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
-            plan_.trajectory_ = trajectory;
+  double eef_step = 0.01;
+  double jump_threshold = 0.0;
+  move_group_.computeCartesianPath(waypoints, eef_step, jump_threshold, trajectory);
+  plan_.trajectory_ = trajectory;
 
-            VisualizeTrajectory();
+  VisualizeTrajectory();
 
-            if (execute) {
-                  ROS_INFO("Executing plan for cartesian path");
-                  move_group_.execute(plan_);
-            }
+  if (execute) {
+        ROS_INFO("Executing plan for cartesian path");
+        move_group_.execute(plan_);
+  }
 }
 
 void Arm::MoveTargetPoseCon(geometry_msgs::Pose target_pose, bool execute, double plan_time) {
-            //move to a target pose with constraint
-            if (!orient_constraint_ && !joint_constraint_) {
-                        ROS_INFO("No Constraints Set");
-                        return;
-            }
+  //move to a target pose with constraint
+  if (!orient_constraint_ && !joint_constraint_) {
+              ROS_INFO("No Constraints Set");
+              return;
+  }
 
-            // move_group_.setPathConstraints(path_constraints);
-            move_group_.setPlanningTime(plan_time);
+  // move_group_.setPathConstraints(path_constraints);
+  move_group_.setPlanningTime(plan_time);
 
-            if (orient_constraint_ == true) {
-                        //use orientation constraint as the target orientation, otherwise there will be error
-                        ROS_INFO_NAMED("move_panda", "Orientaiton constraint will be set as target orientation");
-                        target_pose.orientation.w = ocm_.orientation.w;
-                        target_pose.orientation.x = ocm_.orientation.x;
-                        target_pose.orientation.y = ocm_.orientation.y;
-                        target_pose.orientation.z = ocm_.orientation.z;
-            }
+  if (orient_constraint_ == true) {
+              //use orientation constraint as the target orientation, otherwise there will be error
+              ROS_INFO_NAMED("move_panda", "Orientaiton constraint will be set as target orientation");
+              target_pose.orientation.w = ocm_.orientation.w;
+              target_pose.orientation.x = ocm_.orientation.x;
+              target_pose.orientation.y = ocm_.orientation.y;
+              target_pose.orientation.z = ocm_.orientation.z;
+  }
 
-            MoveTargetPose(target_pose, execute);
+  MoveTargetPose(target_pose, execute);
 }
 
 // Libraries
@@ -296,70 +321,179 @@ double Arm::getSquaredEuclideanDistance(geometry_msgs::Pose p1, geometry_msgs::P
   return distanceSquared;
 }
 
+// void setDefaultBehavior(franka::Robot& robot) {
+//   robot.setCollisionBehavior(
+//       {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+//       {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}}, {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
+//       {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+//       {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}}, {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}});
+//   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
+//   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
+// }
+// 
+// void ImpedanceController() {
+//
+//   // Compliance parameters
+//   const double translational_stiffness{150.0};
+//   const double rotational_stiffness{10.0};
+//   Eigen::MatrixXd stiffness(6, 6), damping(6, 6);
+//   stiffness.setZero();
+//   stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
+//   stiffness.bottomRightCorner(3, 3) << rotational_stiffness * Eigen::MatrixXd::Identity(3, 3);
+//   damping.setZero();
+//   damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
+//                                      Eigen::MatrixXd::Identity(3, 3);
+//   damping.bottomRightCorner(3, 3) << 2.0 * sqrt(rotational_stiffness) *
+//                                          Eigen::MatrixXd::Identity(3, 3);
+//
+//   try {
+//     // connect to robot
+//     franka::Robot robot("franka2");
+//     setDefaultBehavior(robot);
+//     // load the kinematics and dynamics model
+//     franka::Model model = robot.loadModel();
+//
+//     franka::RobotState initial_state = robot.readOnce();
+//
+//     // equilibrium point is the initial position
+//     Eigen::Affine3d initial_transform(Eigen::Matrix4d::Map(initial_state.O_T_EE.data()));
+//     Eigen::Vector3d position_d(initial_transform.translation());
+//     Eigen::Quaterniond orientation_d(initial_transform.linear());
+//
+//     // set collision behavior
+//     robot.setCollisionBehavior({{100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0}},
+//                                {{100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0}},
+//                                {{100.0, 100.0, 100.0, 100.0, 100.0, 100.0}},
+//                                {{100.0, 100.0, 100.0, 100.0, 100.0, 100.0}});
+//
+//     // define callback for the torque control loop
+//     std::function<franka::Torques(const franka::RobotState&, franka::Duration)>
+//         impedance_control_callback = [&](const franka::RobotState& robot_state,
+//                                          franka::Duration /*duration*/) -> franka::Torques {
+//       // get state variables
+//       std::array<double, 7> coriolis_array = model.coriolis(robot_state);
+//       std::array<double, 42> jacobian_array =
+//           model.zeroJacobian(franka::Frame::kEndEffector, robot_state);
+//
+//       // convert to Eigen
+//       Eigen::Map<const Eigen::Matrix<double, 7, 1> > coriolis(coriolis_array.data());
+//       Eigen::Map<const Eigen::Matrix<double, 6, 7> > jacobian(jacobian_array.data());
+//       Eigen::Map<const Eigen::Matrix<double, 7, 1> > q(robot_state.q.data());
+//       Eigen::Map<const Eigen::Matrix<double, 7, 1> > dq(robot_state.dq.data());
+//       Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
+//       Eigen::Vector3d position(transform.translation());
+//       Eigen::Quaterniond orientation(transform.linear());
+//
+//       // compute error to desired equilibrium pose
+//       // position error
+//       Eigen::Matrix<double, 6, 1> error;
+//       error.head(3) << position - position_d;
+//
+//       // orientation error
+//       // "difference" quaternion
+//       if (orientation_d.coeffs().dot(orientation.coeffs()) < 0.0) {
+//         orientation.coeffs() << -orientation.coeffs();
+//       }
+//       // "difference" quaternion
+//       Eigen::Quaterniond error_quaternion(orientation.inverse() * orientation_d);
+//       error.tail(3) << error_quaternion.x(), error_quaternion.y(), error_quaternion.z();
+//       // Transform to base frame
+//       error.tail(3) << -transform.linear() * error.tail(3);
+//
+//       // compute control
+//       Eigen::VectorXd tau_task(7), tau_d(7);
+//
+//       // Spring damper system with damping ratio=1
+//       tau_task << jacobian.transpose() * (-stiffness * error - damping * (jacobian * dq));
+//       tau_d << tau_task + coriolis;
+//
+//       std::array<double, 7> tau_d_array{};
+//       Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d;
+//       return tau_d_array;
+//     };
+//
+//     // start real-time control loop
+//     std::cout << "WARNING: Collision thresholds are set to high values. "
+//               << "Make sure you have the user stop at hand!" << std::endl
+//               << "After starting try to push the robot and see how it reacts." << std::endl
+//               << "Press Enter to continue..." << std::endl;
+//     std::cin.ignore();
+//     robot.control(impedance_control_callback);
+//
+//   } catch (const franka::Exception& ex) {
+//     // print exception
+//     // std::cout << ex.what() << std::endl;
+//     ROS_ERROR("Exception in Cartesian Impedance Controller")
+//   }
+// }
+
 void Arm::TestMovements() {
-      geometry_msgs::Pose test_goal_pose;
-      test_goal_pose.position = home_pose_.position;
-      test_goal_pose.position.y += 0.01;
-      test_goal_pose.orientation = home_pose_.orientation;
+  geometry_msgs::Pose test_goal_pose;
+  test_goal_pose.position = home_pose_.position;
+  test_goal_pose.position.y += 0.01;
+  test_goal_pose.orientation = home_pose_.orientation;
 
-      std::vector<double> home_joint_values =
-            {-1.527311, 0.275241, 2.603782, -2.058497, -0.155177, 1.864411, -2.771809};
+  std::vector<double> home_joint_values =
+        {-1.527311, 0.275241, 2.603782, -2.058497, -0.155177, 1.864411, -2.771809};
 
-      std::vector<double> test_goal_joints1 =
-            {0.301032, 0.428689, 1.150879, -2.100787, 2.670032, 0.879070, 0.00};
-      std::vector<double> test_goal_joints2 =
-            {0.301032, 0.428689, 1.150879, -2.100787, 2.670032, 0.879070, 1.00};
+  std::vector<double> test_goal_joints1 =
+        {0.301032, 0.428689, 1.150879, -2.100787, 2.670032, 0.879070, 0.00};
+  std::vector<double> test_goal_joints2 =
+        {0.301032, 0.428689, 1.150879, -2.100787, 2.670032, 0.879070, 1.00};
 
-      std::vector<geometry_msgs::Pose> test_waypoints;
-      for (int i = 0; i < 5; i++) {
-            geometry_msgs::Pose point;
-            point.position.x = home_pose_.position.x - i*1.0/100.0;
-            point.position.y = home_pose_.position.y + i*1.0/100.0;
-            point.position.z = home_pose_.position.z;
-            point.orientation = home_pose_.orientation;
-            test_waypoints.push_back(point);
-      }
+  std::vector<geometry_msgs::Pose> test_waypoints;
+  for (int i = 0; i < 5; i++) {
+        geometry_msgs::Pose point;
+        point.position.x = home_pose_.position.x - i*1.0/100.0;
+        point.position.y = home_pose_.position.y + i*1.0/100.0;
+        point.position.z = home_pose_.position.z;
+        point.orientation = home_pose_.orientation;
+        test_waypoints.push_back(point);
+  }
 
-      for (int i = 5; i <= 10; i++) {
-            geometry_msgs::Pose point;
-            point.position.x = home_pose_.position.x - i*1.0/100.0;
-            point.position.y = home_pose_.position.y - i*1.0/100.0;
-            point.position.z = home_pose_.position.z;
-            point.orientation = home_pose_.orientation;
-            test_waypoints.push_back(point);
-      }
+  for (int i = 5; i <= 10; i++) {
+        geometry_msgs::Pose point;
+        point.position.x = home_pose_.position.x - i*1.0/100.0;
+        point.position.y = home_pose_.position.y - i*1.0/100.0;
+        point.position.z = home_pose_.position.z;
+        point.orientation = home_pose_.orientation;
+        test_waypoints.push_back(point);
+  }
 
-      ROS_INFO("Testing Waypoints:");
-      for (geometry_msgs::Pose point : test_waypoints) {
-            PrintPose(point);
-      }
+  // ROS_INFO("Testing Waypoints:");
+  // for (geometry_msgs::Pose point : test_waypoints) {
+  //       PrintPose(point);
+  // }
 
-      //Execute Motion
-      // MoveTargetPose(test_goal_pose, true);
-      // MoveTargetJoint(test_goal_joints1, true);
-      // MoveTargetJoint(home_joint_values, true);
-      // executeCartesianPath(test_waypoints, true);
 
-      // for (int i = 0; i < 2; i ++) {
-          //   MoveArmDirectionX(-0.02); // 1 cm
-      // }
-      //
-      // for (int i = 0; i < 2; i ++) {
-          //   MoveArmDirectionY(-0.02); // 1 cm
-      // }
-      //
-      // for (int i = 0; i < 2; i ++) {
-          //   MoveArmDirectionZ(-0.02); // 1 cm
-      // }
 
-      geometry_msgs::Pose p1;
-      geometry_msgs::Pose p2;
-      p1.position.x = 1.0;
-      p1.position.y = 1.0;
-      p1.position.z = 1.0;
-      // Test Function
-      double dist = getSquaredEuclideanDistance(p1, p2);
-      ROS_INFO("Distance Calculated: %f", dist);
+
+  //Execute Motion
+  MoveTargetPose(test_goal_pose, true);
+  // MoveTargetJoint(test_goal_joints1, true);
+  // MoveTargetJoint(home_joint_values, true);
+  // executeCartesianPath(test_waypoints, true);
+
+  // for (int i = 0; i < 2; i ++) {
+      //   MoveArmDirectionX(-0.02); // 1 cm
+  // }
+  //
+  // for (int i = 0; i < 2; i ++) {
+      //   MoveArmDirectionY(-0.02); // 1 cm
+  // }
+  //
+  // for (int i = 0; i < 2; i ++) {
+      //   MoveArmDirectionZ(-0.02); // 1 cm
+  // }
+
+  geometry_msgs::Pose p1;
+  geometry_msgs::Pose p2;
+  p1.position.x = 1.0;
+  p1.position.y = 1.0;
+  p1.position.z = 1.0;
+  // Test Function
+  double dist = getSquaredEuclideanDistance(p1, p2);
+  ROS_INFO("Distance Calculated: %f", dist);
 }
 
 }

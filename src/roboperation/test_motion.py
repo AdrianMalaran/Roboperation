@@ -9,52 +9,34 @@ def talker():
     rospy.init_node('talker', anonymous=True)
     rate = rospy.Rate(5) # 10hz
 
-    arm_state_pose_msg = ArmStatePose()
-    arm_state_pose_msg.desired_pose.position.x = 99.0
-    arm_state_pose_msg.desired_pose.position.y = 99.0
-    arm_state_pose_msg.desired_pose.position.z = 99.0
-    arm_state_pose_msg.desired_pose.orientation.x = 1.0
-    arm_state_pose_msg.desired_pose.orientation.y = 2.0
-    arm_state_pose_msg.desired_pose.orientation.z = 3.0
+    arm_state_pose_pub.publish()
+
+
 
     # TODO: Need to change
     start_pose = Pose()
-    start_pose.position.x = 200.0
-    start_pose.position.y = 1.0
-    start_pose.position.z = 1.0
-    start_pose.orientation.x = 1.0
-    start_pose.orientation.y = 1.0
-    start_pose.orientation.z = 1.0
+    start_pose.position.x = 0.25
+    start_pose.position.y = 0.01
+    start_pose.position.z = 0.59
+    start_pose.orientation.w = 0.0013
+    start_pose.orientation.x = 0.9248
+    start_pose.orientation.y = -0.3806
+    start_pose.orientation.z =  0.0014
 
-    test_points_length = 100
-    test_points = []
-    arm_state_pose_msg.desired_pose = start_pose
-    test_points.append(arm_state_pose_msg)
-    # for i in range(test_points_length):
-    #     arm_state_pose_msg = ArmStatePose()
-    #     arm_state_pose_msg.desired_pose = start_pose
-    #     y_value = arm_state_pose_msg.desired_pose.position.y
-    #     arm_state_pose_msg.desired_pose.position.y = y_value - 0.1
-    #     rospy.loginfo("YValue %f", y_value)
-    #     test_points.append(arm_state_pose_msg)
+    # Reset to Home
+    home_state_pose = ArmStatePose()
+    home_state_pose.desired_pose = start_pose
+    arm_state_pose_pub.publish(home_state_pose)
 
+    rospy.sleep(3.)
 
-    # for point in test_points:
-    # # while not rospy.is_shutdown():
-    #     # hello_str = "Index %i" % index
-    #     hello_str = "Heart beat %s" % rospy.get_time()
-    #     rospy.loginfo("Y Value to Publish %f", point.desired_pose.position.y)
-    #     pub.publish(hello_str)
-    #
-    #     arm_state_pose_pub.publish(point)
-    #     # index = index + 1
-    #     rate.sleep()
-
+    test_points_length = 50
     end_state = 0.0
     offset = start_pose.position.x
     for i in range(test_points_length):
         test_pose = ArmStatePose()
-        test_pose.desired_pose.position.x = offset + 0.1 * i
+        test_pose.desired_pose = start_pose
+        test_pose.desired_pose.position.x = offset + 0.001 * i
         rospy.loginfo("YValue %f", test_pose.desired_pose.position.x)
         arm_state_pose_pub.publish(test_pose)
         end_state = test_pose.desired_pose.position.x
@@ -62,8 +44,9 @@ def talker():
 
     for i in range(test_points_length):
         test_pose = ArmStatePose()
-        test_pose.desired_pose.position.x = offset + end_state - (0.1 * i)
-        rospy.loginfo("YValue %f", test_pose.desired_pose.position.x)
+        test_pose.desired_pose = start_pose
+        test_pose.desired_pose.position.x = end_state - (0.001 * i)
+        rospy.loginfo("YValue - Returning %f, %f, %f", test_pose.desired_pose.position.x, test_pose.desired_pose.position.y, test_pose.desired_pose.position.z)
         arm_state_pose_pub.publish(test_pose)
         rate.sleep()
 
