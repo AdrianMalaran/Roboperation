@@ -10,14 +10,8 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  ROS_INFO("Starting Arm...");
+  ROS_WARN("Starting Arm...");
   panda::Arm arm;
-
-  // while (ros::ok())
-  // {
-  //   ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.1));
-  // }
-
   // ros::spin();
   return 0;
 }
