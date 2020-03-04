@@ -1,5 +1,3 @@
-// Copyright (c) 2017 Franka Emika GmbH
-// Use of this source code is governed by the Apache-2.0 license, see LICENSE
 #pragma once
 
 #include <memory>
@@ -19,9 +17,9 @@
 #include <franka_hw/franka_model_interface.h>
 #include <franka_hw/franka_state_interface.h>
 
-namespace franka_example_controllers {
+namespace roboperation_controllers {
 
-class CartesianImpedanceExampleController : public controller_interface::MultiInterfaceController<
+class RoboperationExampleController : public controller_interface::MultiInterfaceController<
                                                 franka_hw::FrankaModelInterface,
                                                 hardware_interface::EffortJointInterface,
                                                 franka_hw::FrankaStateInterface> {
@@ -29,6 +27,7 @@ class CartesianImpedanceExampleController : public controller_interface::MultiIn
   bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
   void starting(const ros::Time&) override;
   void update(const ros::Time&, const ros::Duration& period) override;
+  void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
 
  private:
   // Saturation

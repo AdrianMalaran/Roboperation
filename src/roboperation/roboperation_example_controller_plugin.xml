@@ -1,0 +1,7 @@
+<library path="lib/libroboperation">
+  <class name="roboperation_controllers/RoboperationExampleController" type="roboperation_controllers::RoboperationExampleController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      Roboperation Controller
+    </description>
+  </class>
+</library>
