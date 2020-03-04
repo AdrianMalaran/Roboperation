@@ -53,6 +53,8 @@ class RoboperationExampleController : public controller_interface::MultiInterfac
   Eigen::Vector3d position_d_target_;
   Eigen::Quaterniond orientation_d_target_;
 
+  int iteration_counter_ = 0;
+
   // Dynamic reconfigure
   std::unique_ptr<dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>
       dynamic_server_compliance_param_;

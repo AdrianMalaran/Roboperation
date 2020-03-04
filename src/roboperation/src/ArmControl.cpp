@@ -3,25 +3,52 @@
 /*
 
 Plan For Today:
-    []  Make a callback that is responsive to moving
+[x]  Make a callback that is responsive to moving
 [x] Make the camera work
-[] Use the fake controller to see how it works out on big laptop so you can code offline
+[x] Use the fake controller to see how it works out on big laptop so you can code offline
 [] Have a collision out-of-bounds
-[] Take a look at how execute works
-[] What does robot.control do ?
+[x] Take a look at how execute works
+[x] What does robot.control do ?
+
+[] Use a cartesian_pose_controller
 
 -// roslaunch panda_moveit_config demo.launch
-
 
 TODAY [March 3]
 - Play around with what the stiffness controller does (Cartesian Impedance Controller)
 - See if you can constrain the motion path properly
 
 
-Questions to Ask:
-- Is there a way to interrupt the current trajectory plan to start a new one (?)
-- How do i interface with a different controller (JointGroupPositionController) to try to get it to be more real time
-- What does playing around with the joint stiffness do ??
+LAUNCH CONTROLLER:
+$$$$ roslaunch franka_example_controllers cartesian_impedance_example_controller.launch robot_ip:=franka2
+
+EXAMPLE Message:
+$$$$ rostopic echo /equilibrium_pose
+server_id: "/interactive_marker"
+seq_num: 3930
+type: 1
+markers: []
+poses:
+  -
+    header:
+      seq: 0
+      stamp:
+        secs: 0
+        nsecs:         0
+      frame_id: "panda_link0"
+    pose:
+      position:
+        x: 0.403116226196
+        y: 0.0359357595444
+        z: 0.385318487883
+      orientation:
+        x: 0.988982498646
+        y: -0.00681050354615
+        z: 0.0274160169065
+        w: 0.145312517881
+    name: "equilibrium_pose"
+erases: []
+
 */
 
 namespace panda {
@@ -330,7 +357,7 @@ double Arm::getSquaredEuclideanDistance(geometry_msgs::Pose p1, geometry_msgs::P
 //   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
 //   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 // }
-// 
+//
 // void ImpedanceController() {
 //
 //   // Compliance parameters

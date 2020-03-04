@@ -37,10 +37,10 @@ bool RoboperationExampleController::init(hardware_interface::RobotHW* robot_hw,
       ros::TransportHints().reliable().tcpNoDelay());
 
   arm_control_input_sub_ = node_handle.subscribe(
-      "input_state", 1, &RoboperationExampleController::PoseListenerCallback,
+      "input_state", 20, &RoboperationExampleController::PoseListenerCallback,
       this, ros::TransportHints().reliable().tcpNoDelay());
 
-  ROS_WARN("STARTING ROBOPERATION CONTROLLER!!!!!!");
+  // ROS_WARN("STARTING ROBOPERATION CONTROLLER!!!!!!");
   std::string arm_id;
   if (!node_handle.getParam("arm_id", arm_id)) {
     ROS_ERROR_STREAM("RoboperationExampleController: Could not read parameter arm_id");
@@ -150,7 +150,11 @@ void RoboperationExampleController::starting(const ros::Time& /*time*/) {
 
 void RoboperationExampleController::update(const ros::Time& /*time*/,
                                                  const ros::Duration& /*period*/) {
-  ROS_WARN("UPDATING");
+  iteration_counter_ ++;
+  // if (iteration_counter_ % 100 == 0) {
+  //   iteration_counter_ = 0;
+  //   ROS_WARN("Position_D: (%f, %f, %f)", position_d_(0), position_d_(1), position_d_(2));
+  // }
   // get state variables
   franka::RobotState robot_state = state_handle_->getRobotState();
   std::array<double, 7> coriolis_array = model_handle_->getCoriolis();
@@ -167,7 +171,6 @@ void RoboperationExampleController::update(const ros::Time& /*time*/,
   Eigen::Affine3d transform(Eigen::Matrix4d::Map(robot_state.O_T_EE.data()));
   Eigen::Vector3d position(transform.translation());
   Eigen::Quaterniond orientation(transform.linear());
-
   // compute error to desired pose
   // position error
   Eigen::Matrix<double, 6, 1> error;
