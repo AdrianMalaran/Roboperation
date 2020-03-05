@@ -27,6 +27,10 @@ find_package(catkin REQUIRED COMPONENTS
   hardware_interface
 )
 
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
 find_package(Eigen3 REQUIRED)
 find_package(Franka 0.7.0 REQUIRED)
 

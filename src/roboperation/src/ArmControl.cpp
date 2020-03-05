@@ -4,15 +4,35 @@
 
 Plan For Today:
 [] Have a collision out-of-bounds
-[] Run Arduino as a ros node on linux
-[] Create a test script that
-[] Highjack the /equilibrium_pose
+[] Run Arduino as a ros node on linux on docker
+[] Trigger a move to start position
+[x] Create a test script that
+[x] Highjack the /equilibrium_pose
 
 -// roslaunch panda_moveit_config demo.launch
 
-TODAY [March 3]
-- Play around with what the stiffness controller does (Cartesian Impedance Controller)
-- See if you can constrain the motion path properly
+INSTRUCTIONS TO RUN:
+  Pre-instructions:
+    1) Power on robot
+    2) Unlock Joints https://franka2.robohub.eng.uwaterloo.ca/desk/
+    3) Start Terminal
+      Each Terminal:
+        start_docker
+        source /opt/ros/kinetic/setup.bash
+        cd ~/Roboperation
+        source devel/setup.bash
+      Terminal 1:
+        roslaunch roboperation roboperation_controller.launch
+      Terminal 2:
+        cd ~/Roboperation/src/roboperation &&
+
+INSTRUCTIONS TO SHUT DOWN:
+1) Log out of Google
+2) Log out of Github
+3) Unplug Arduino/Chargers
+4) Plug in USB Camera 1
+5) Lock Joints
+6) E-STOP/Power Off
 
 
 LAUNCH CONTROLLER:
