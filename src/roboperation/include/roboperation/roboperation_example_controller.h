@@ -7,6 +7,7 @@
 #include <controller_interface/multi_interface_controller.h>
 #include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/WrenchStamped.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/robot_hw.h>
 #include <ros/node_handle.h>
@@ -27,7 +28,6 @@ class RoboperationExampleController : public controller_interface::MultiInterfac
   bool init(hardware_interface::RobotHW* robot_hw, ros::NodeHandle& node_handle) override;
   void starting(const ros::Time&) override;
   void update(const ros::Time&, const ros::Duration& period) override;
-  void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
 
  private:
   // Saturation
@@ -53,7 +53,12 @@ class RoboperationExampleController : public controller_interface::MultiInterfac
   Eigen::Vector3d position_d_target_;
   Eigen::Quaterniond orientation_d_target_;
 
-  int iteration_counter_ = 0;
+  std::vector<double> x_bounds = {0.0, 0.60}; // meters
+  std::vector<double> y_bounds = {-20.0, 0.60}; // meters
+  std::vector<double> z_bounds = {0.25, 1.0}; // meters
+  bool back_inbound_ = true;
+
+  bool ValidateGoalPose(geometry_msgs::Pose desired_pose);
 
   // Dynamic reconfigure
   std::unique_ptr<dynamic_reconfigure::Server<franka_example_controllers::compliance_paramConfig>>
@@ -65,7 +70,10 @@ class RoboperationExampleController : public controller_interface::MultiInterfac
   // Equilibrium pose subscriber
   ros::Subscriber sub_equilibrium_pose_;
   ros::Subscriber arm_control_input_sub_;
+  ros::Subscriber external_force_sub_;
   void equilibriumPoseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
+  void PoseListenerCallback(const geometry_msgs::Pose::ConstPtr &msg);
+  void ExternalForceCallback(const geometry_msgs::WrenchStamped::ConstPtr &msg);
 };
 
 }  // namespace franka_example_controllers

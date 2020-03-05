@@ -8,6 +8,10 @@ Plan For Today:
 [] Trigger a move to start position
 [x] Create a test script that
 [x] Highjack the /equilibrium_pose
+[x] Set boundary constraints on the desired position
+[x] Set Warning for high force action
+[] Need a reset to home pose script
+[] Maybe try controlling the gripper
 
 -// roslaunch panda_moveit_config demo.launch
 
@@ -64,6 +68,60 @@ poses:
         w: 0.145312517881
     name: "equilibrium_pose"
 erases: []
+
+
+
+POSSIBLE TOPICS:
+
+r/clicked_point
+/dynamic_reconfigure_compliance_param_node/parameter_descriptions
+/dynamic_reconfigure_compliance_param_node/parameter_updates
+/equilibrium_pose
+/franka_control/error_recovery/cancel
+/franka_control/error_recovery/feedback
+/franka_control/error_recovery/goal
+/franka_control/error_recovery/result
+/franka_control/error_recovery/status
+/franka_gripper/grasp/cancel
+/franka_gripper/grasp/feedback
+/franka_gripper/grasp/goal
+/franka_gripper/grasp/result
+/franka_gripper/grasp/status
+/franka_gripper/gripper_action/cancel
+/franka_gripper/gripper_action/feedback
+/franka_gripper/gripper_action/goal
+/franka_gripper/gripper_action/result
+/franka_gripper/gripper_action/status
+/franka_gripper/homing/cancel
+/franka_gripper/homing/feedback
+/franka_gripper/homing/goal
+/franka_gripper/homing/result
+/franka_gripper/homing/status
+/franka_gripper/joint_states
+/franka_gripper/move/cancel
+/franka_gripper/move/feedback
+/franka_gripper/move/goal
+/franka_gripper/move/result
+/franka_gripper/move/status
+/franka_gripper/stop/cancel
+/franka_gripper/stop/feedback
+/franka_gripper/stop/goal
+/franka_gripper/stop/result
+/franka_gripper/stop/status
+/franka_state_controller/F_ext
+/franka_state_controller/franka_states
+/franka_state_controller/joint_states
+/franka_state_controller/joint_states_desired
+/initialpose
+/input_state
+/joint_states
+/joint_states_desired
+/move_base_simple/goal
+/rosout
+/rosout_agg
+/tf
+/tf_static
+
 
 */
 

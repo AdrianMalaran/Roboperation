@@ -40,6 +40,10 @@ bool RoboperationExampleController::init(hardware_interface::RobotHW* robot_hw,
       "/input_state", 20, &RoboperationExampleController::PoseListenerCallback,
       this, ros::TransportHints().reliable().tcpNoDelay());
 
+  external_force_sub_ = node_handle.subscribe(
+      "/franka_state_controller/F_ext", 20, &RoboperationExampleController::ExternalForceCallback, this,
+      ros::TransportHints().reliable().tcpNoDelay());
+
   // ROS_WARN("STARTING ROBOPERATION CONTROLLER!!!!!!");
   std::string arm_id;
   if (!node_handle.getParam("arm_id", arm_id)) {
@@ -127,6 +131,18 @@ void RoboperationExampleController::PoseListenerCallback(const geometry_msgs::Po
   ROS_WARN("INPUT STATE RECEIVED");
 }
 
+void RoboperationExampleController::ExternalForceCallback(const geometry_msgs::WrenchStamped::ConstPtr &msg) {
+  // ROS_WARN("Getting External Force (%f)", msg->wrench.force.y);
+  double force_threshold = 5.0;
+
+  bool x_force_thresh = abs(msg->wrench.force.x) > force_threshold;
+  bool y_force_thresh = abs(msg->wrench.force.y) > force_threshold;
+  bool z_force_thresh = abs(msg->wrench.force.z) > force_threshold;
+  if (x_force_thresh || y_force_thresh || z_force_thresh) {
+    ROS_ERROR("HIGH EXTERNAL FORCE experienced! Should stop robot");
+  }
+}
+
 void RoboperationExampleController::starting(const ros::Time& /*time*/) {
   // compute initial velocity with jacobian and set x_attractor and q_d_nullspace
   // to initial configuration
@@ -150,11 +166,6 @@ void RoboperationExampleController::starting(const ros::Time& /*time*/) {
 
 void RoboperationExampleController::update(const ros::Time& /*time*/,
                                                  const ros::Duration& /*period*/) {
-  iteration_counter_ ++;
-  // if (iteration_counter_ % 100 == 0) {
-  //   iteration_counter_ = 0;
-  //   ROS_WARN("Position_D: (%f, %f, %f)", position_d_(0), position_d_(1), position_d_(2));
-  // }
   // get state variables
   franka::RobotState robot_state = state_handle_->getRobotState();
   std::array<double, 7> coriolis_array = model_handle_->getCoriolis();
@@ -252,8 +263,29 @@ void RoboperationExampleController::complianceParamCallback(
   nullspace_stiffness_target_ = config.nullspace_stiffness;
 }
 
+bool RoboperationExampleController::ValidateGoalPose(geometry_msgs::Pose desired_pose) {
+  bool inside_bounds_x = desired_pose.position.x >= x_bounds[0] && desired_pose.position.x < x_bounds[1];
+  bool inside_bounds_y = desired_pose.position.y >= y_bounds[0] && desired_pose.position.y < y_bounds[1];
+  bool inside_bounds_z = desired_pose.position.z >= z_bounds[0] && desired_pose.position.z < z_bounds[1];
+
+  // Add a "Make sure its a short enough distance"
+
+  return inside_bounds_x && inside_bounds_y && inside_bounds_z;
+}
+
 void RoboperationExampleController::equilibriumPoseCallback(
     const geometry_msgs::PoseStampedConstPtr& msg) {
+
+  // Validate the goal pose
+  if (!ValidateGoalPose(msg->pose)) {
+    ROS_ERROR("Desired_Pose Outside bounds - Not Following Trajectory");
+    back_inbound_ = false;
+    return;
+  } else if (!back_inbound_) {
+    ROS_INFO("Back inbound");
+    back_inbound_ = true;
+  }
+
   position_d_target_ << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
   Eigen::Quaterniond last_orientation_d_target(orientation_d_target_);
   orientation_d_target_.coeffs() << msg->pose.orientation.x, msg->pose.orientation.y,
