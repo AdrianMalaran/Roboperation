@@ -3,14 +3,10 @@
 /*
 
 Plan For Today:
-[x]  Make a callback that is responsive to moving
-[x] Make the camera work
-[x] Use the fake controller to see how it works out on big laptop so you can code offline
 [] Have a collision out-of-bounds
-[x] Take a look at how execute works
-[x] What does robot.control do ?
-
-[] Use a cartesian_pose_controller
+[] Run Arduino as a ros node on linux
+[] Create a test script that
+[] Highjack the /equilibrium_pose
 
 -// roslaunch panda_moveit_config demo.launch
 

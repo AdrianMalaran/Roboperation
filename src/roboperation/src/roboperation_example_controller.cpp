@@ -37,7 +37,7 @@ bool RoboperationExampleController::init(hardware_interface::RobotHW* robot_hw,
       ros::TransportHints().reliable().tcpNoDelay());
 
   arm_control_input_sub_ = node_handle.subscribe(
-      "input_state", 20, &RoboperationExampleController::PoseListenerCallback,
+      "/input_state", 20, &RoboperationExampleController::PoseListenerCallback,
       this, ros::TransportHints().reliable().tcpNoDelay());
 
   // ROS_WARN("STARTING ROBOPERATION CONTROLLER!!!!!!");
