@@ -6,13 +6,13 @@ import serial  # sudo pip install pyserial should work
 
 serial_port = '/dev/ttyACM0';
 baud_rate = 9600; #In arduino, Serial.begin(baud_rate)
-write_to_file_path = "/home/amalaran/Roboperation/src/roboperation/output.txt";
+write_to_file_path = "/home/robohub/robohub/panda/Roboperation/src/roboperation/output.txt";
 
 ser = serial.Serial(serial_port, baud_rate)
 while True:
     output_file = open(write_to_file_path, "a");
-    line = ser.readline();
-    line = line.decode("utf-8") #ser.readline returns a binary, convert to string
+    line = ser.readline()
+    # line = line.decode("utf-8") #ser.readline returns a binary, convert to string
     print(line);
     output_file.write(line)
     output_file.close()

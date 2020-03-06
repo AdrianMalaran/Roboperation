@@ -3,15 +3,19 @@
 /*
 
 Plan For Today:
-[] Have a collision out-of-bounds
-[] Run Arduino as a ros node on linux on docker
-[] Trigger a move to start position
+[x] Have a collision out-of-bounds
+[x] Run Arduino as a ros node on linux on docker
 [x] Create a test script that
 [x] Highjack the /equilibrium_pose
 [x] Set boundary constraints on the desired position
 [x] Set Warning for high force action
 [] Need a reset to home pose script
 [] Maybe try controlling the gripper
+[]
+
+[TEAR DOWN - Check List]
+[] Uninstall python-pip (sudo apt install python-pip)
+[] Uninstall pyserial (sudo pip install pyserial)
 
 -// roslaunch panda_moveit_config demo.launch
 
@@ -19,6 +23,9 @@ INSTRUCTIONS TO RUN:
   Pre-instructions:
     1) Power on robot
     2) Unlock Joints https://franka2.robohub.eng.uwaterloo.ca/desk/
+    3) Start Arduino
+      Note: If unable to upload, run this on terminal
+      sudo chmod a+rw /dev/ttyACM0
     3) Start Terminal
       Each Terminal:
         start_docker
