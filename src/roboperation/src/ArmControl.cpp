@@ -35,7 +35,11 @@ INSTRUCTIONS TO RUN:
       Terminal 1:
         roslaunch roboperation roboperation_controller.launch
       Terminal 2:
-        cd ~/Roboperation/src/roboperation &&
+        cd ~/Roboperation/src/roboperation && python get_data.py
+      Terminal 3:
+        cd ~/Roboperation/src/roboperation && python read_data.py
+
+
 
 INSTRUCTIONS TO SHUT DOWN:
 1) Log out of Google
