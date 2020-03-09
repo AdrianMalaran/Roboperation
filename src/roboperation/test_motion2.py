@@ -20,6 +20,11 @@ def talker():
     desired_pose.orientation.z =  0.0781914275355
     desired_pose.orientation.w = -0.037632445723
 
+    # desired_pose.orientation.x = -0.07698
+    # desired_pose.orientation.y = -0.12954
+    # desired_pose.orientation.z =  0.07959
+    # desired_pose.orientation.w = 0.98538
+
     positive_y_thresh = 0.20
     negative_y_thresh = -0.10
     rospy.loginfo("Publishing!!")

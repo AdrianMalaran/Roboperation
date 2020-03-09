@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
   roscpp
   rospy
+  std_msgs
   geometry_msgs
   message_generation
   control_msgs
