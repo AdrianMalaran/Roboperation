@@ -13,7 +13,7 @@
 #include <sensor_msgs/JointState.h>
 
 #include <franka/gripper_state.h>
-#include <franka_gripper/franka_gripper.h>
+#include <roboperation_gripper/roboperation_gripper.h>
 
 namespace {
 
@@ -58,6 +58,7 @@ using franka_gripper::stop;
 using franka_gripper::updateGripperState;
 
 int main(int argc, char** argv) {
+  ROS_WARN("Starting Gripper Node!");
   ros::init(argc, argv, "franka_gripper_node");
   ros::NodeHandle node_handle("~");
   std::string robot_ip;

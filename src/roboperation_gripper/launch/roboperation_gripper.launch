@@ -1,9 +1,9 @@
 <?xml version="1.0" ?>
 <launch>
-  <arg name="robot_ip" />
+  <arg name="robot_ip" default="franka2"/>
 
-  <node name="franka_gripper" pkg="franka_gripper" type="roboperation_gripper_node" output="screen">
+  <node name="roboperation_gripper" pkg="roboperation_gripper" type="roboperation_gripper_node" output="screen">
     <param name="robot_ip" value="$(arg robot_ip)"/>
-    <rosparam command="load" file="$(find franka_gripper)/config/franka_gripper_node.yaml" />
+    <rosparam command="load" file="$(find roboperation_gripper)/config/roboperation_gripper_node.yaml" />
   </node>
 </launch>

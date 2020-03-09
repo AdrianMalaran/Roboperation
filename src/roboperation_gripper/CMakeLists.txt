@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   xmlrpcpp
   actionlib_msgs
+  franka_control
+  franka_hw
 )
 
 if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
@@ -31,6 +33,12 @@ add_action_files(
         Stop.action
         Move.action
 )
+
+add_message_files(
+  DIRECTORY msg
+  FILES GraspEpsilon.msg
+)
+
 generate_messages(
   DEPENDENCIES
   std_msgs
@@ -53,6 +61,7 @@ catkin_package(
     sensor_msgs
     xmlrpcpp
     actionlib_msgs
+    franka_hw
   DEPENDS
     system_lib
     Franka
@@ -80,9 +89,20 @@ add_dependencies(${PROJECT_NAME}
   ${PROJECT_NAME}_gencfg
 )
 
+add_dependencies(roboperation_gripper_node
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${catkin_EXPORTED_TARGETS}
+  roboperation_gripper
+)
+
+target_link_libraries(roboperation_gripper
+   ${Franka_LIBRARIES}
+   ${catkin_LIBRARIES}
+)
+
 target_link_libraries(roboperation_gripper_node
-  ${Franka_LIBRARIES}
   ${catkin_LIBRARIES}
+  roboperation_gripper
 )
 
 target_include_directories(roboperation_gripper_node SYSTEM PUBLIC
