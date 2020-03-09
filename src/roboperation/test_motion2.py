@@ -29,9 +29,9 @@ def talker():
     negative_y_thresh = -0.10
     rospy.loginfo("Publishing!!")
 
-    while desired_pose.position.y < positive_y_thresh:
-        desired_pose.position.y += 0.005
-        desired_pose.orientation.y += 0.01
+    while desired_pose.position.y < positive_y_thresh and desired_pose.orientation.y < 0.115:
+        # desired_pose.position.y += 0.005
+        desired_pose.orientation.y += 0.001
         desired_pose.orientation.w += 0.01
         rospy.loginfo("Pose(%f, %f, %f || %f, %f, %f, %f)", desired_pose.position.x, desired_pose.position.y, desired_pose.position.z, desired_pose.orientation.x, desired_pose.orientation.y, desired_pose.orientation.z, desired_pose.orientation.w)
         pose_stamped.header.seq = seq_num
@@ -39,9 +39,9 @@ def talker():
         desired_pose_stamped_publisher.publish(pose_stamped)
         seq_num = seq_num + 1
         rate.sleep()
-    while desired_pose.position.y > negative_y_thresh:
-        desired_pose.position.y -= 0.005
-        desired_pose.orientation.y -= 0.01
+    while desired_pose.position.y > negative_y_thresh and desired_pose.orientation.y > -0.7:
+        # desired_pose.position.y -= 0.005
+        desired_pose.orientation.y -= 0.001
         desired_pose.orientation.w -= 0.01
         rospy.loginfo("Pose(%f, %f, %f || %f, %f, %f, %f)", desired_pose.position.x, desired_pose.position.y, desired_pose.position.z, desired_pose.orientation.x, desired_pose.orientation.y, desired_pose.orientation.z, desired_pose.orientation.w)
         pose_stamped.header.seq = seq_num
