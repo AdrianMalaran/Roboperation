@@ -210,12 +210,12 @@ int main(int argc, char** argv) {
   // std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(3000));
   // ROS_WARN("Grasping!");
   // gripper.move(0.0, 0.1);
-  // gripper.grasp(0.015, 0.1, 60);
+  // gripper.grasp(0.015, 0.1, 5);
   // Wait 3s and check afterwards, if the object is still grasped.
   // std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(3000));
   // ROS_WARN("Checking!");
-  // gripper_state = gripper.readOnce();
-  // ROS_INFO("Max Grasping Width: Width:%f, MaxWidth:%f", gripper_state.width, gripper_state.max_width);
+  gripper_state = gripper.readOnce();
+  ROS_INFO("Max Grasping Width: Width:%f, MaxWidth:%f", gripper_state.width, gripper_state.max_width);
 
   std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(3000));
   gripper.stop();
@@ -228,23 +228,26 @@ int main(int argc, char** argv) {
 
   bool same_state = false;
   GrippingActionState prev_gripper_action_state = GrippingActionState::STOP;
+  bool has_grasped = false;
 
   while (ros::ok()) {
     // ros::getGlobalCallbackQueue()->callAvailable(ros::WallDuration(0.03));
-    if (gripper_state_mutex.try_lock()) {
-      sensor_msgs::JointState joint_states;
-      joint_states.header.stamp = ros::Time::now();
-      joint_states.name.push_back(joint_names[0]);
-      joint_states.name.push_back(joint_names[1]);
-      joint_states.position.push_back(gripper_state.width * 0.5);
-      joint_states.position.push_back(gripper_state.width * 0.5);
-      joint_states.velocity.push_back(0.0);
-      joint_states.velocity.push_back(0.0);
-      joint_states.effort.push_back(0.0);
-      joint_states.effort.push_back(0.0);
-      gripper_state_publisher.publish(joint_states);
-      gripper_state_mutex.unlock();
-    }
+    // if (gripper_state_mutex.try_lock()) {
+    //   sensor_msgs::JointState joint_states;
+    //   joint_states.header.stamp = ros::Time::now();
+    //   joint_states.name.push_back(joint_names[0]);
+    //   joint_states.name.push_back(joint_names[1]);
+    //   joint_states.position.push_back(gripper_state.width * 0.5);
+    //   joint_states.position.push_back(gripper_state.width * 0.5);
+    //   joint_states.velocity.push_back(0.0);
+    //   joint_states.velocity.push_back(0.0);
+    //   joint_states.effort.push_back(0.0);
+    //   joint_states.effort.push_back(0.0);
+    //   gripper_state_publisher.publish(joint_states);
+    //   gripper_state_mutex.unlock();
+    // }
+
+    gripper_state = gripper.readOnce();
 
     double gripper_desired_width = gripper_state.width;
     double gripper_speed = 0.5;
@@ -266,26 +269,42 @@ int main(int argc, char** argv) {
     }
 
     bool inbounds = (gripper_desired_width > 0.002 || gripper_desired_width < max_width - 0.005);
-    if (!same_state) {
-      ROS_WARN("New State Received");
+    // if (!same_state) {
+      // ROS_INFO("Loop State: %u", gripper_action_state);
+
       if (gripper_action_state == GrippingActionState::STOP) {
-        ROS_INFO("Stopping Gripper");
+        ROS_ERROR("Stopping Gripper");
         gripper.stop();
       } else {
-        if (gripper_action_state == GrippingActionState::CLOSE) {
+        if (gripper_action_state == GrippingActionState::CLOSE && !has_grasped) {
           ROS_INFO("State Grasping Gripper");
-          gripper.grasp(0.03, 0.1, 10);
+          if (!gripper.grasp(0.01, 0.1, 10)) {
+            ROS_WARN("Gripper Not Grasping Object");
+          } else {
+            // std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(3000));
+            while(gripper_action_state == GrippingActionState::CLOSE) {
+              ROS_WARN("WAITING FOR A DIFFERENT STATE");
+            }
+            ROS_WARN("--------------FINISHED!");
+            gripper.stop();
+          }
+
           ROS_INFO("Grasping the object (%u)", gripper_state.is_grasped);
-          // gripper.move();
+          has_grasped = gripper_state.is_grasped;
+          // gripper.move(0.02, 0.1);
         }
         else {
-          ROS_INFO("State Opening Gripper");
+          ROS_INFO("Opening Gripper");
+          // gripper.homing();
           gripper.move(gripper_desired_width, gripper_speed);
         }
       }
-    }
+
+    // }
 
     prev_gripper_action_state = gripper_action_state;
+
+    ROS_WARN("End of Loop");
 
     // rate.sleep();
   }
