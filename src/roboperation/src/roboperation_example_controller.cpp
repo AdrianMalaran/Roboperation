@@ -270,7 +270,20 @@ bool RoboperationExampleController::ValidateGoalPose(geometry_msgs::Pose desired
 
   // Add a "Make sure its a short enough distance"
 
-  return inside_bounds_x && inside_bounds_y && inside_bounds_z;
+  bool is_inbounds = inside_bounds_x && inside_bounds_y && inside_bounds_z;
+  if (!is_inbounds) {
+    ROS_WARN("Goal Pose Out of Bounds - Not Following Trajectory");
+
+    if (!inside_bounds_x)
+      ROS_WARN("  X out of bounds: %f", desired_pose.position.x);
+
+    if (!inside_bounds_y)
+      ROS_WARN("  Y out of bounds: %f", desired_pose.position.y);
+
+    if (!inside_bounds_z)
+      ROS_WARN("  Z out of bounds: %f", desired_pose.position.z);
+  }
+  return is_inbounds;
 }
 
 void RoboperationExampleController::equilibriumPoseCallback(
@@ -278,7 +291,7 @@ void RoboperationExampleController::equilibriumPoseCallback(
 
   // Validate the goal pose
   if (!ValidateGoalPose(msg->pose)) {
-    ROS_ERROR("Desired_Pose Outside bounds - Not Following Trajectory");
+
     back_inbound_ = false;
     return;
   } else if (!back_inbound_) {

@@ -54,8 +54,8 @@ class RoboperationExampleController : public controller_interface::MultiInterfac
   Eigen::Quaterniond orientation_d_target_;
 
   std::vector<double> x_bounds = {0.0, 0.60}; // meters
-  std::vector<double> y_bounds = {-20.0, 0.60}; // meters
-  std::vector<double> z_bounds = {0.25, 1.0}; // meters
+  std::vector<double> y_bounds = {-0.30, 0.60}; // meters
+  std::vector<double> z_bounds = {0.10, 1.0}; // meters
   bool back_inbound_ = true;
 
   bool ValidateGoalPose(geometry_msgs::Pose desired_pose);
