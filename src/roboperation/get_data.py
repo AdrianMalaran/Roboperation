@@ -9,25 +9,22 @@ def string_to_pose(str_array, start_pose):
     desired_pose.position.y = start_pose.position.y + float(str_array[3])
     desired_pose.position.z = start_pose.position.z + float(str_array[4])
 
+    # Fixed - Position
     # desired_pose.position.x = start_pose.position.x
     # desired_pose.position.y = start_pose.position.y
     # desired_pose.position.z = start_pose.position.z
 
     # Orientation
-    desired_pose.orientation.x = start_pose.orientation.x
-    desired_pose.orientation.y = start_pose.orientation.y
-    desired_pose.orientation.z = start_pose.orientation.z
-    desired_pose.orientation.w = start_pose.orientation.w
+    # desired_pose.orientation.x = start_pose.orientation.x
+    # desired_pose.orientation.y = start_pose.orientation.y
+    # desired_pose.orientation.z = start_pose.orientation.z
+    # desired_pose.orientation.w = start_pose.orientation.w
 
-    # desired_pose.orientation.x = float(str_array[5])
-    # desired_pose.orientation.y = float(str_array[6])
-    # desired_pose.orientation.z = float(str_array[7])
-    # desired_pose.orientation.w = float(str_array[8])
+    desired_pose.orientation.x = float(str_array[5])
+    desired_pose.orientation.y = float(str_array[6])
+    desired_pose.orientation.z = float(str_array[7])
+    desired_pose.orientation.w = float(str_array[8])
 
-    # desired_pose.orientation.x = start_pose.orientation.x + float(str_array[5])
-    # desired_pose.orientation.y = start_pose.orientation.y + float(str_array[6])
-    # desired_pose.orientation.z = start_pose.orientation.z + float(str_array[7])
-    # desired_pose.orientation.w = start_pose.orientation.w + float(str_array[8])
     return desired_pose
 
 def talker():
