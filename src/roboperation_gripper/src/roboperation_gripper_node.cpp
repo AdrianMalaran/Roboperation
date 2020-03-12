@@ -243,27 +243,28 @@ int main(int argc, char** argv) {
     if (gripper_action_state == GrippingActionState::CLOSE) {
       // gripper_desired_width -= gripper_position_step;
       gripper_desired_width = 0.002;
-      ROS_WARN("GripperActionState set to CLOSE");
+      ROS_INFO("GripperActionState set to CLOSE");
     } else if (gripper_action_state == GrippingActionState::OPEN) {
       // gripper_desired_width += gripper_position_step;
       // gripper_desired_width = std::min(gripper_desired_width, max_width);
       gripper_desired_width = max_width;
-      ROS_WARN("GripperActionState set to OPEN");
+      ROS_INFO("Set GripperActionState: OPEN");
     }
 
     bool inbounds = (gripper_desired_width > 0.002 || gripper_desired_width < max_width - 0.005);
     if (gripper_action_state == GrippingActionState::STOP) {
-      ROS_ERROR("Stopping Gripper");
+      ROS_INFO("Stopping Gripper");
       gripper.stop();
     } else {
       if (gripper_action_state == GrippingActionState::CLOSE && !has_grasped) {
         ROS_INFO("State Grasping Gripper");
-        if (!gripper.grasp(0.01, 0.1, 10)) {
+        if (!gripper.grasp(0.057, 0.1, 45)) {
           ROS_WARN("Gripper Not Grasping Object");
+          gripper_action_state = GrippingActionState::OPEN;
         } else {
           // std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(3000));
           while(gripper_action_state == GrippingActionState::CLOSE) {
-            ROS_WARN("WAITING FOR A DIFFERENT STATE");
+            ROS_WARN("Gripped Object - Waiting for Release ...");
           }
           ROS_WARN("--------------FINISHED!");
           gripper.stop();
@@ -280,10 +281,7 @@ int main(int argc, char** argv) {
     }
 
     prev_gripper_action_state = gripper_action_state;
-
-    ROS_WARN("End of Loop");
-
-    // rate.sleep();
+    rate.sleep();
   }
   read_thread.join();
   return 0;

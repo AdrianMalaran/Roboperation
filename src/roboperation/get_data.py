@@ -4,10 +4,14 @@ from geometry_msgs.msg import Pose, PoseStamped
 
 def string_to_pose(str_array, start_pose):
     desired_pose = Pose()
-    # Position
+    # Position - PROPER POSITION
     desired_pose.position.x = start_pose.position.x + float(str_array[2])
     desired_pose.position.y = start_pose.position.y + float(str_array[3])
     desired_pose.position.z = start_pose.position.z + float(str_array[4])
+
+    # desired_pose.position.x = start_pose.position.x
+    # desired_pose.position.y = start_pose.position.y
+    # desired_pose.position.z = start_pose.position.z
 
     # Orientation
     desired_pose.orientation.x = start_pose.orientation.x
