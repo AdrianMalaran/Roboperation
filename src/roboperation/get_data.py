@@ -1,6 +1,6 @@
 import rospy
 from std_msgs.msg import String
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import Pose, PoseStamped, WrenchStamped
 
 def string_to_pose(str_array, start_pose):
     desired_pose = Pose()
@@ -15,21 +15,37 @@ def string_to_pose(str_array, start_pose):
     # desired_pose.position.z = start_pose.position.z
 
     # Orientation
-    # desired_pose.orientation.x = start_pose.orientation.x
-    # desired_pose.orientation.y = start_pose.orientation.y
-    # desired_pose.orientation.z = start_pose.orientation.z
-    # desired_pose.orientation.w = start_pose.orientation.w
+    desired_pose.orientation.x = start_pose.orientation.x
+    desired_pose.orientation.y = start_pose.orientation.y
+    desired_pose.orientation.z = start_pose.orientation.z
+    desired_pose.orientation.w = start_pose.orientation.w
 
-    desired_pose.orientation.x = float(str_array[5])
-    desired_pose.orientation.y = float(str_array[6])
-    desired_pose.orientation.z = float(str_array[7])
-    desired_pose.orientation.w = float(str_array[8])
+    # desired_pose.orientation.x = float(str_array[5])
+    # desired_pose.orientation.y = float(str_array[6])
+    # desired_pose.orientation.z = float(str_array[7])
+    # desired_pose.orientation.w = float(str_array[8])
 
     return desired_pose
+
+def ExternalForceCallback(data):
+
+    force_threshold = 3.0
+    x_force_exceeds = data.wrench.force.x > force_threshold
+    y_force_exceeds = data.wrench.force.y > force_threshold
+    z_force_exceeds = data.wrench.force.z > force_threshold
+    if x_force_exceeds or y_force_exceeds or z_force_exceeds:
+        WriteExternalForceToFile()
+
+def WriteExternalForceToFile():
+    force_f = open("/home/robohub/Roboperation/src/roboperation/force_output.txt", 'a')
+    force_f.write("HIT,")
+    force_f.close()
 
 def talker():
     gripper_state_publisher = rospy.Publisher('/roboperation_gripper/chatter', String, queue_size=10)
     desired_pose_stamped_publisher = rospy.Publisher('/equilibrium_pose', PoseStamped, queue_size=10)
+
+    external_feedback_subscriber = rospy.Subscriber('/franka_state_controller/F_ext', WrenchStamped, ExternalForceCallback)
     rospy.init_node('talker', anonymous=True)
     rate = rospy.Rate(30) # 10hz
 
